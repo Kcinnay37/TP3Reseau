@@ -1,12 +1,8 @@
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
+import java.util.Set;
 
 public class Client extends MyRunnable
 {
@@ -30,14 +26,16 @@ public class Client extends MyRunnable
 
     Boolean update = true;
 
+    Boolean playerTurn = false;
+
+    String currGrid = "000000000";
+
     public synchronized void Start()
     {
         try
         {
-            System.out.println("test");
             // Connection au server --------------------------------------------------------
             m_Socket = new Socket(address, port);
-            System.out.println("Client Connecter");
 
             isr = new InputStreamReader(this.m_Socket.getInputStream());
             m_Response = new BufferedReader(this.isr);
@@ -60,14 +58,25 @@ public class Client extends MyRunnable
             if(getInput)
             {
                 cmd = "";
-                System.out.print("entrer le type de commande : ");
-                if(this.in == null)
-                    this.in = new DataInputStream(System.in);
-                cmd = this.in.readLine();
+                DisplayGrid();
+                if(playerTurn)
+                {
+                    System.out.print("entrer le movement x,y : ");
+
+                    // s'assure que le inputStream n'est pas null
+                    if(this.in == null)
+                        this.in = new DataInputStream(System.in);
+                    cmd = this.in.readLine();
+                    cmd = "Put:" + cmd;
+                }
+                else
+                {
+                    System.out.println("en attente de l'autre joueur");
+                }
             }
             else
             {
-                cmd = "GetGamePort";
+                cmd = "Get";
                 getInput = true;
                 update = false;
             }
@@ -75,6 +84,7 @@ public class Client extends MyRunnable
 
             //envoie la commande au server connecter
             CmdSend(cmd);
+
 
             // reponse -------------------------------------------------------------
             String responseLine = "";
@@ -113,11 +123,14 @@ public class Client extends MyRunnable
 
     public void CmdSend(String cmd)
     {
-        switch (cmd)
+        if(cmd.contains("Get"))
         {
-            case "GetGamePort":
-                m_Request.print("GetPortValid\r\n");
-                break;
+            m_Request.print("Get\r\n");
+        }
+        if(cmd.contains("Put:"))
+        {
+            m_Request.print(cmd + "\r\n");
+            playerTurn = false;
         }
 
         m_Request.print("end\r\n");
@@ -126,12 +139,60 @@ public class Client extends MyRunnable
 
     public void CmdReceive(String cmd)
     {
-        if(cmd.contains("Port:"))
+        if(cmd.contains("port:"))
         {
             String port = cmd.substring(6, cmd.length());
-            System.out.println(port);
             SetAddressPort(address, Integer.parseInt(port));
         }
+        else if(cmd.contains("turn: "))
+        {
+            String turn = cmd.substring(6, 9);
+            if(turn.equals("yes"))
+            {
+                playerTurn = true;
+            }
+            else
+            {
+                playerTurn = false;
+            }
+            currGrid = cmd.substring(cmd.length() - 9);
+        }
+    }
+
+    public void DisplayGrid()
+    {
+        int step = 2;
+        for(int i = 0; i < 9; i++)
+        {
+            if(i % 3 == 0 && i != 0)
+            {
+                step += 3;
+                System.out.println("");
+                for(int j = 0; j < 3; j++)
+                {
+                    System.out.print("─");
+                    if(j != 2)
+                    {
+                        System.out.print("┼");
+                    }
+                }
+                System.out.println("");
+            }
+            char currChar = currGrid.charAt(i);
+            if(currChar != '0')
+            {
+                System.out.print(currChar);
+            }
+            else
+            {
+                System.out.print(" ");
+            }
+            if(i % step != 0 || i == 0)
+            {
+                System.out.print('│');
+            }
+        }
+        System.out.println("");
     }
 
     public void SetAddressPort(String address, int port)

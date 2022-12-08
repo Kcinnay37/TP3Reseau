@@ -2,6 +2,7 @@ import java.net.*;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.ArrayList;
 
 public abstract class Server extends MyRunnable
 {
@@ -51,14 +52,14 @@ public abstract class Server extends MyRunnable
             // connection host --------------------------------------------------------------
             m_ServerHost = new ServerSocket(portHost);
 
-            System.out.println("En attente d'une connection");
             m_SocketHost = m_ServerHost.accept();
-            System.out.println("Serveur connecter");
 
             isrHost = new InputStreamReader(m_SocketHost.getInputStream());
             m_ResponseHost = new BufferedReader(isrHost);
             m_RequestHost = new PrintWriter(m_SocketHost.getOutputStream());
             // -----------------------------------------------------------------------------
+
+            OnConnect();
         }
         catch (IOException e)
         {
@@ -107,12 +108,15 @@ public abstract class Server extends MyRunnable
 
     public void CmdReceive(String cmd)
     {
-        System.out.println(cmd);
         switch (cmd)
         {
-            case "GetPortValid":
-                GetPortValid(cmd);
+            case "Get":
+                Get(cmd);
                 break;
+            case "Put":
+                Put(cmd);
+                break;
+
         }
         m_RequestHost.print("end\r\n");
         m_RequestHost.flush();
@@ -123,74 +127,9 @@ public abstract class Server extends MyRunnable
         portHost = port;
     }
 
-    public void SetAddressConnect(String address)
-    {
-        this.addressConnect = address;
-    }
-
-    public void SetPortConnect(int port)
-    {
-        this.portConnect = port;
-    }
-
-    public void Connect()
-    {
-        try
-        {
-            // Va ce connecter au server en gardant tout les ref -----------------------------------
-            m_SocketConnect = new Socket(addressConnect, portConnect);
-            //System.out.println("Serveur Connecter2");
-
-            isrConnect = new InputStreamReader(m_SocketConnect.getInputStream());
-            m_ResponseConnect = new BufferedReader(isrConnect);
-            m_RequestConnect = new PrintWriter(m_SocketConnect.getOutputStream(), true);
-            // -------------------------------------------------------------------------------------
-        }
-        catch (Exception e)
-        {
-            System.out.println(e);
-        }
-    }
-
-    public void Disconnect()
-    {
-        try
-        {
-            isrConnect.close();
-            m_RequestConnect.close();
-            m_ResponseConnect.close();
-            m_SocketConnect.close();
-        }
-        catch (IOException e)
-        {
-            System.out.println(e);
-        }
-    }
-
-    public String GetServerConnectResponse()
-    {
-        String response = "";
-        try
-        {
-            String responseLine = "";
-            while(!(responseLine = m_ResponseConnect.readLine()).equals("end"))
-            {
-                response += responseLine;
-            }
-        }
-        catch (IOException e)
-        {
-            System.out.println(e);
-        }
-        return response;
-    }
-
-    public void SetUpdateLoop(boolean value)
-    {
-        updateLoop = value;
-    }
-
-    public abstract void GetPortValid(String cmd);
+    public abstract void Get(String cmd);
 
     public abstract void Put(String cmd);
+
+    public abstract void OnConnect();
 }
