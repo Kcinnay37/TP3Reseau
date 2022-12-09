@@ -86,7 +86,7 @@ public class Client extends MyRunnable
             CmdSend(cmd);
 
 
-            // reponse -------------------------------------------------------------
+            // recoi la reponse -------------------------------------------------------------
             String responseLine = "";
             String currLine = "";
             while(!(currLine = m_Response.readLine()).equals("end")) {
@@ -94,6 +94,7 @@ public class Client extends MyRunnable
             }
             // ---------------------------------------------------------------------
 
+            // va traiter la commande
             CmdReceive(responseLine);
 
         }
@@ -121,6 +122,7 @@ public class Client extends MyRunnable
         }
     }
 
+    // envoie une commande au serveur
     public void CmdSend(String cmd)
     {
         if(cmd.contains("Get"))
@@ -137,6 +139,7 @@ public class Client extends MyRunnable
         m_Request.flush();
     }
 
+    // traite la commande recu
     public void CmdReceive(String cmd)
     {
         if(cmd.contains("port:"))
@@ -157,8 +160,16 @@ public class Client extends MyRunnable
             }
             currGrid = cmd.substring(cmd.length() - 9);
         }
+        else if(cmd.contains("gameIsEnd"))
+        {
+            currGrid = cmd.substring(cmd.length() - 9);
+            DisplayGrid();
+            update = false;
+            stop();
+        }
     }
 
+    // affiche la grid du TicTacTo
     public void DisplayGrid()
     {
         int step = 2;
@@ -195,6 +206,7 @@ public class Client extends MyRunnable
         System.out.println("");
     }
 
+    // Set l'address et le port que le client doit ce connecter
     public void SetAddressPort(String address, int port)
     {
         this.address = address;

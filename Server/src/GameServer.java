@@ -7,6 +7,8 @@ import java.net.Socket;
 
 public class GameServer extends Server
 {
+    MainServer m_MainServer = null;
+
     ServerSocket[] m_ServerHostPlayer = {null, null};
 
     Socket[] m_SocketHostPlayer = {null, null};
@@ -23,6 +25,8 @@ public class GameServer extends Server
 
     TicTacTo ticTacTo;
 
+    int nbPlayer = 2;
+
     public synchronized void Start()
     {
         try
@@ -30,9 +34,9 @@ public class GameServer extends Server
             ticTacTo = new TicTacTo();
             ticTacTo.ResetTicTacTo();
 
-            // connection host --------------------------------------------------------------
 
-            for(int i = 0; i < 2; i++)
+            // connection 2 player --------------------------------------------------------------
+            for(int i = 0; i < nbPlayer; i++)
             {
                 m_ServerHostPlayer[i] = new ServerSocket(ports[i]);
 
@@ -56,7 +60,7 @@ public class GameServer extends Server
     {
         try
         {
-            for(int i = 0; i < 2; i++)
+            for(int i = 0; i < nbPlayer; i++)
             {
                 currPlayer = i;
 
@@ -69,10 +73,14 @@ public class GameServer extends Server
                 }
                 // -------------------------------------------------------------------------
 
-                //va traiter la commande
+                // si il a recu une commende va traiter la commande
                 if(!line.equals(""))
                 {
                     CmdReceive(line);
+                }
+                if(updateLoop == false)
+                {
+                    break;
                 }
             }
         }
@@ -85,6 +93,7 @@ public class GameServer extends Server
 
     public synchronized void End()
     {
+        SetPortActive();
         try
         {
             for(int i = 0; i < 2; i++)
@@ -151,10 +160,29 @@ public class GameServer extends Server
             sign = "O";
         }
 
+        // si le joueur peux jouer le coup
         if(ticTacTo.ChangeGridAt(sign, pos))
         {
+            if(ticTacTo.CheckGameIsEnd())
+            {
+                for(int i = 0; i < 2; i++)
+                {
+                    m_RequestHostPlayer[i].print("gameIsEnd\r\n");
+                    if(i != currPlayer)
+                    {
+                        m_RequestHostPlayer[i].print(ticTacTo.GetGrid() + "\r\n");
+                        m_RequestHostPlayer[i].print("end\r\n");
+                        m_RequestHostPlayer[i].flush();
+                    }
+                }
+                updateLoop = false;
+                return;
+            }
+
+            //dit qu'il peut pas jouer
             m_RequestHostPlayer[currPlayer].print("turn: nop\r\n");
 
+            // dit a l'autre joueur que c'est sont tour
             if(currPlayer == 0)
             {
                 m_RequestHostPlayer[1].print("turn: yes\r\n");
@@ -172,19 +200,37 @@ public class GameServer extends Server
         }
         else
         {
+            // redit au joueur de jouer
             m_RequestHostPlayer[currPlayer].print("turn: yes\r\n");
-            m_RequestHostPlayer[currPlayer].print(ticTacTo.GetGrid() + "\r\n");
-            m_RequestHostPlayer[currPlayer].print("end\r\n");
-            m_RequestHostPlayer[currPlayer].flush();
 
+            // dit a l'autre joueur de ne pas rejouer
             if(currPlayer == 0)
             {
                 m_RequestHostPlayer[1].print("turn: nop\r\n");
+                m_RequestHostPlayer[1].print(ticTacTo.GetGrid() + "\r\n");
+                m_RequestHostPlayer[1].print("end\r\n");
+                m_RequestHostPlayer[1].flush();
             }
             else
             {
                 m_RequestHostPlayer[0].print("turn: nop\r\n");
+                m_RequestHostPlayer[0].print(ticTacTo.GetGrid() + "\r\n");
+                m_RequestHostPlayer[0].print("end\r\n");
+                m_RequestHostPlayer[0].flush();
             }
         }
+    }
+
+    // va remettre les port actif dans le mainServer
+    public void SetPortActive()
+    {
+        String port1 = String.valueOf(ports[0]);
+        String port2 = String.valueOf(ports[1]);
+        m_MainServer.AddValidPort(port1, port2);
+    }
+
+    public void SetMainServer(MainServer mainServer)
+    {
+        this.m_MainServer = mainServer;
     }
 }

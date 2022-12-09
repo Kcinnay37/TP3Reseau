@@ -1,9 +1,12 @@
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class MainServer extends Server
 {
     ArrayList<String> validPort = new ArrayList<String>();
     ArrayList<String> invalidePort = new ArrayList<String>();
+
+    Boolean alreadyUse = false;
 
     @Override
     public void OnConnect()
@@ -14,7 +17,7 @@ public class MainServer extends Server
     @Override
     public void Get(String cmd)
     {
-        // prend le port et l'enleve des ports valid
+        // prend un port valide le met invalide et le retourn
         String port = validPort.get(0);
         invalidePort.add(validPort.get(0));
         validPort.remove(0);
@@ -28,9 +31,24 @@ public class MainServer extends Server
 
     }
 
-    public void AddValidPort(String port)
+    public void AddValidPort(String port1, String port2)
     {
-        invalidePort.remove(port);
-        validPort.add(port);
+        while(alreadyUse)
+        {
+            try
+            {
+                Thread.sleep(100);
+            }
+            catch (Exception e)
+            {
+                System.out.println(e);
+            }
+        }
+        alreadyUse = true;
+        invalidePort.remove(port1);
+        invalidePort.remove(port2);
+        validPort.add(port1);
+        validPort.add(port2);
+        alreadyUse = false;
     }
 }
